@@ -1,20 +1,16 @@
 require 'json'
 require 'fileutils'
-# puts "Enter your backup sql file path: "
-# backup_path = gets.chomp
-# puts "Enter your current sql file path: "
-# current_db_path = gets.chomp
 
 class SqlToJson
 
-  @@hashed_file = []
+  @@hashed_file = {}
 
   def parse_file path, table_name
     file = IO.foreach(path).to_a
     start_create_structure = false
     start_write_data = false
     table_structure = {}
-    hashed_file = []
+    hashed_file = {}
     written_rows = 0
     file.each do |line|
       line = line.scrub
@@ -40,7 +36,8 @@ class SqlToJson
         records_list.each_with_index do |record, index|
           console_status("Get #{index + 1} of #{table_name} record")
           values_list = separate_values(record)
-          hashed_file << structure_with_values(table_structure, values_list)
+          full_record = structure_with_values(table_structure, values_list)
+          hashed_file[full_record[:id]] = full_record
         end
         console_separator
       end
@@ -105,18 +102,48 @@ class SqlToJson
   end
 end
 
+
+# ---------Index Code-----------
+
+# puts "Enter your backup sql file path: "
+# backup_path = gets.chomp
+# puts "Enter your current sql file path: "
+# current_db_path = gets.chomp
+
+table_name = 'blocks';
+field_to_recover = 'owner_id'
+
+result_dir = "result"
+
+unless File.directory?(result_dir)
+  Dir.mkdir result_dir
+end
+
+
 p "==================Parsing backup=================="
 
 backup_parser = SqlToJson.new
-backup_parser.parse_file("/Users/gleb/sophie_backup_2017_08_31.sql", 'blocks')
-backup_parser.write_file("./tmp/backup.json")
+backup_hashes = backup_parser.parse_file("/Users/gleb/sophie_backup_2017_08_31.sql", table_name)
 
 p "==================Parsing current DB file=================="
 
 current_db_parser = SqlToJson.new
-backup_parser.parse_file("/Users/gleb/sophie_backup_2017_08_31.sql", 'blocks')
-backup_parser.write_file("./tmp/current_db.json")
+current_hashes = current_db_parser.parse_file("/Users/gleb/MySQL.sql", table_name)
 
-# backup_json = File.new("./tmp/backup.json", "w")
-# backup_json.puts(hashed_backup.to_json)
-# backup_json.close
+p "==================Comparing two results and writing into file=================="
+
+result_file = File.new("./result/result_script.sql", "w")
+updated_count = 0
+
+backup_hashes.each do |(key, value)|
+  if current_hashes.key?(key)
+    if value[field_to_recover.to_sym] != "NULL" && current_hashes[key][field_to_recover.to_sym] == "NULL"
+      result_file.puts "UPDATE `#{table_name}` SET `#{field_to_recover}`=`#{value[field_to_recover.to_sym]}` WHERE `id`=`#{value[:id]}`;"
+      updated_count = updated_count + 1
+    end
+  end
+end
+
+result_file.close
+
+p "File's created! #{updated_count} records of #{table_name} will be updated"
