@@ -154,4 +154,4 @@ end
 
 result_file.close
 
-p "File's created! #{updated_count} records of #{table_name} will be updated"
+p "File's been created! #{updated_count} records of #{table_name} will be updated"
