@@ -103,12 +103,14 @@ class SqlToJson
 end
 
 
-# ---------Index Code-----------
+# ---------Index Code----------- "/Users/gleb/sophie_backup_2017_08_31.sql" "/Users/gleb/MySQL.sql"
 
-# puts "Enter your backup sql file path: "
-# backup_path = gets.chomp
-# puts "Enter your current sql file path: "
-# current_db_path = gets.chomp
+p "Enter your backup sql file path: "
+backup_path = gets.chomp
+p "Enter your current sql file path: "
+current_db_path = gets.chomp
+p "Enter your current DB name: "
+current_db_name = gets.chomp
 
 table_name = 'blocks';
 field_to_recover = 'owner_id'
@@ -123,22 +125,28 @@ end
 p "==================Parsing backup=================="
 
 backup_parser = SqlToJson.new
-backup_hashes = backup_parser.parse_file("/Users/gleb/sophie_backup_2017_08_31.sql", table_name)
+backup_hashes = backup_parser.parse_file(backup_path, table_name)
 
 p "==================Parsing current DB file=================="
 
 current_db_parser = SqlToJson.new
-current_hashes = current_db_parser.parse_file("/Users/gleb/MySQL.sql", table_name)
+current_hashes = current_db_parser.parse_file(current_db_path, table_name)
 
 p "==================Comparing two results and writing into file=================="
 
-result_file = File.new("./result/result_script.sql", "w")
+
+result_path = "./result/result_script.sql"
+File.delete(result_path) if File.exist?(result_path)
+result_file = File.new(result_path, "w")
+
+result_file.puts "USE `#{current_db_name}`;"
+
 updated_count = 0
 
 backup_hashes.each do |(key, value)|
   if current_hashes.key?(key)
     if value[field_to_recover.to_sym] != "NULL" && current_hashes[key][field_to_recover.to_sym] == "NULL"
-      result_file.puts "UPDATE `#{table_name}` SET `#{field_to_recover}`=`#{value[field_to_recover.to_sym]}` WHERE `id`=`#{value[:id]}`;"
+      result_file.puts "UPDATE `#{table_name}` SET `#{field_to_recover}`='#{value[field_to_recover.to_sym]}' WHERE `id`=#{value[:id]};"
       updated_count = updated_count + 1
     end
   end
