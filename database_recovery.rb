@@ -114,9 +114,10 @@ p "Enter your current sql file path: "
 current_db_path = gets.chomp
 p "Enter your current DB name: "
 current_db_name = gets.chomp
-
-table_name = 'blocks';
-field_to_recover = 'owner_id'
+p "Enter the table you want to recover"
+table_name = gets.chomp
+p "Enter the field you want to recover"
+field_to_recover = gets.chomp
 
 result_dir = "result"
 
