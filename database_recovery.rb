@@ -106,6 +106,7 @@ end
 # ---------Index Code----------- "/Users/gleb/sophie_backup_2017_08_31.sql" "/Users/gleb/MySQL.sql"
 
 Dir.chdir(File.dirname(__FILE__))
+p Dir.pwd
 
 p "Enter your backup sql file path: "
 backup_path = gets.chomp
